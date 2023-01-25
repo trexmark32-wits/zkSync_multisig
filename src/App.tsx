@@ -33,7 +33,8 @@ function App() {
   // For the simplicity of the tutorial, we will use zero hash as salt
   const salt = ethers.constants.HashZero;
 
-  // const salt ="0x0000000000000000000000000000000000000000000000000000000000000011";
+  // const salt =
+  //   "0x0000000000000000000000000000000000000000000000000000000000000012";
 
   // instead of creating and using new owners we are using EOAs and signers for the txn
 
@@ -65,8 +66,232 @@ function App() {
       })
     ).wait();
   }
+
   // creates plain vannila transaction
-  function handleTxn() {}
+  async function simpleSignOne() {
+    // const provider1 = new Provider("https://zksync2-testnet.zksync.dev");
+    const ABI = [
+      { inputs: [], stateMutability: "nonpayable", type: "constructor" },
+      {
+        anonymous: false,
+        inputs: [
+          {
+            indexed: true,
+            internalType: "address",
+            name: "owner",
+            type: "address",
+          },
+          {
+            indexed: true,
+            internalType: "address",
+            name: "spender",
+            type: "address",
+          },
+          {
+            indexed: false,
+            internalType: "uint256",
+            name: "value",
+            type: "uint256",
+          },
+        ],
+        name: "Approval",
+        type: "event",
+      },
+      {
+        anonymous: false,
+        inputs: [
+          {
+            indexed: true,
+            internalType: "address",
+            name: "from",
+            type: "address",
+          },
+          {
+            indexed: true,
+            internalType: "address",
+            name: "to",
+            type: "address",
+          },
+          {
+            indexed: false,
+            internalType: "uint256",
+            name: "value",
+            type: "uint256",
+          },
+        ],
+        name: "Transfer",
+        type: "event",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "owner", type: "address" },
+          { internalType: "address", name: "spender", type: "address" },
+        ],
+        name: "allowance",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "spender", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+        ],
+        name: "approve",
+        outputs: [{ internalType: "bool", name: "", type: "bool" }],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [{ internalType: "address", name: "account", type: "address" }],
+        name: "balanceOf",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "decimals",
+        outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "spender", type: "address" },
+          { internalType: "uint256", name: "subtractedValue", type: "uint256" },
+        ],
+        name: "decreaseAllowance",
+        outputs: [{ internalType: "bool", name: "", type: "bool" }],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "spender", type: "address" },
+          { internalType: "uint256", name: "addedValue", type: "uint256" },
+        ],
+        name: "increaseAllowance",
+        outputs: [{ internalType: "bool", name: "", type: "bool" }],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "mint",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "name",
+        outputs: [{ internalType: "string", name: "", type: "string" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "symbol",
+        outputs: [{ internalType: "string", name: "", type: "string" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [],
+        name: "totalSupply",
+        outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+        stateMutability: "view",
+        type: "function",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "to", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+        ],
+        name: "transfer",
+        outputs: [{ internalType: "bool", name: "", type: "bool" }],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+      {
+        inputs: [
+          { internalType: "address", name: "from", type: "address" },
+          { internalType: "address", name: "to", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+        ],
+        name: "transferFrom",
+        outputs: [{ internalType: "bool", name: "", type: "bool" }],
+        stateMutability: "nonpayable",
+        type: "function",
+      },
+    ];
+    const contAddress = "0x6634726fB7832Cff9Ed0630B77adAF875898b070";
+
+    const contract = new ethers.Contract(contAddress, ABI, signer);
+    // const transactionData = contract.interface.encodeFunctionData("mint");
+
+    let aaTx = await contract.populateTransaction.mint();
+    const gasLimit = await provider.estimateGas(aaTx);
+    const gasPrice = await provider.getGasPrice();
+
+    aaTx = {
+      ...aaTx,
+      from: multisigAddress,
+      gasLimit: gasLimit,
+      gasPrice: gasPrice,
+      chainId: (await provider.getNetwork()).chainId,
+      nonce: await provider.getTransactionCount(multisigAddress),
+      type: 113,
+      customData: {
+        // Note, that we are using the `DEFAULT_ERGS_PER_PUBDATA_LIMIT`
+        ergsPerPubdata: utils.DEFAULT_ERGS_PER_PUBDATA_LIMIT,
+      } as types.Eip712Meta,
+      value: ethers.utils.parseEther("0.001"),
+    };
+
+    setaaTx(aaTx);
+
+    const signedTxHash = EIP712Signer.getSignedDigest(aaTx);
+
+    console.log("connectedWalletAddress", connectedWalletAddress);
+    const signature1 = await ethereum.request({
+      method: "eth_sign",
+      params: [connectedWalletAddress, signedTxHash],
+    });
+
+    setSignedTxHash(signedTxHash);
+    setSignatureOne(signature1);
+    console.log("signature1", signature1);
+  }
+  async function simpleSignTwo() {
+    const provider = new Provider("https://zksync2-testnet.zksync.dev");
+    console.log("connectedWalletAddress", connectedWalletAddress);
+
+    const signature2 = await ethereum.request({
+      method: "eth_sign",
+      params: [connectedWalletAddress, signedTxHash],
+    });
+
+    const signature = ethers.utils.concat([signature1, signature2]);
+    let aatx = aaTx;
+    console.log("aaTx, aatx", aaTx, aatx);
+    aatx.customData = {
+      ...aatx.customData,
+      customSignature: signature,
+    };
+
+    const sentTx = await provider.sendTransaction(utils.serialize(aatx));
+    await sentTx.wait();
+    console.log("sentTx", sentTx);
+
+    // const tx = await provider1.sendTransaction({
+    //   to: contAddress,
+    //   value: ethers.utils.parseEther("0.0001"),
+    //   data: transactionData,
+    // });
+    // console.log(tx);
+  }
 
   // async function handleDisconnect() {
   //   await window.ethereum.request({
@@ -175,18 +400,6 @@ function App() {
     //   )}`
     // );
   }
-
-  // async function signOne() {
-  //   console.log("signedTxHash", signedTxHash);
-  //   console.log("connectedWalletAddress", connectedWalletAddress);
-  //   const signature1 = await ethereum.request({
-  //     method: "eth_sign",
-  //     params: [connectedWalletAddress, signedTxHash],
-  //   });
-
-  //   // return signature1;
-  // }
-
   async function signTwo() {
     const provider = new Provider("https://zksync2-testnet.zksync.dev");
     console.log("connectedWalletAddress", connectedWalletAddress);
@@ -219,6 +432,16 @@ function App() {
       )}`
     );
   }
+  // async function signOne() {
+  //   console.log("signedTxHash", signedTxHash);
+  //   console.log("connectedWalletAddress", connectedWalletAddress);
+  //   const signature1 = await ethereum.request({
+  //     method: "eth_sign",
+  //     params: [connectedWalletAddress, signedTxHash],
+  //   });
+
+  //   // return signature1;
+  // }
 
   async function createMultiSig() {
     console.log("signer", signer);
@@ -240,11 +463,6 @@ function App() {
     );
     setMultiSigWalletAddress(multisigAddress);
     console.log(`Multisig deployed at address ${multisigAddress}`);
-
-    // ---------------- below is the transection part -------------------
-
-    // const owner1 = Wallet.createRandom();
-    // const owner2 = Wallet.createRandom();
 
     // topping up the wallet with eth
     await topUpWallet(multisigAddress);
@@ -329,12 +547,15 @@ function App() {
           <button className="btn custom text-white" onClick={connect}>
             Connect Wallet
           </button>
-          <button className="btn custom text-white" onClick={handleTxn_NewAcc}>
+          {/* <button className="btn custom text-white" onClick={handleTxn}>
+            Plain ERC20 mint
+          </button> */}
+          {/* <button className="btn custom text-white" onClick={handleTxn_NewAcc}>
             Exec txn and 1st sign
           </button>
           <button className="btn custom text-white" onClick={signTwo}>
             Exec 2nd Sign
-          </button>
+          </button> */}
           {/* <button className="btn custom text-white" onClick={handleDisconnect}>
             - Disconnect -
           </button> */}
@@ -344,22 +565,8 @@ function App() {
         <div className="d-flex justify-content-center h3 p-5">
           Create Multisig Wallet
         </div>
-        <div className="d-flex justify-content-center">
+        <div className="row d-flex justify-content-center">
           <form className="w-50" onSubmit={handleSubmit}>
-            {/* <div className="row d-flex justify-content-between mb-3">
-              <label htmlFor="inputpk" className="col-sm-2 col-form-label">
-                Private Key
-              </label>
-              <div className="col-sm-10">
-                <input
-                  type="password"
-                  className="form-control"
-                  id="inputpk"
-                  placeholder="Your Private Key"
-                  onChange={privateKeyHandle}
-                />
-              </div>
-            </div> */}
             <div className="row mb-3">
               <label htmlFor="input1" className="col-sm-2 col-form-label">
                 Owner 1
@@ -369,12 +576,12 @@ function App() {
                   type="text"
                   className="form-control"
                   id="input1"
-                  placeholder="1st Owner Address"
+                  placeholder="Enter 1st Owner Address"
                   onChange={userAdd1Handle}
                 />
               </div>
             </div>
-            <div className="row mb-3">
+            <div className="row d-flex justify-content-between mb-3">
               <label htmlFor="input2" className="col-sm-2 col-form-label">
                 Owner 2
               </label>
@@ -383,7 +590,7 @@ function App() {
                   type="text"
                   className="form-control"
                   id="input2"
-                  placeholder="2nd Owner Address"
+                  placeholder="Enter 2nd Owner Address"
                   onChange={userAdd2Handle}
                 />
               </div>
@@ -395,10 +602,72 @@ function App() {
                 : `Your multisig deployed at address: ${multisigAddress}`}
             </div>
 
-            <button type="submit" className="btn custom text-white mt-5">
+            <button type="submit" className="btn custom text-white mt-4 mx-3">
               Create Wallet
             </button>
           </form>
+          <div className="card text-start w-75 my-5">
+            <div className="card-body">
+              <h5 className="card-title">
+                Executing a transection by deploying a new account
+              </h5>
+              <p className="card-text">
+                The above provided addresses are used as signatories.
+              </p>
+              <div className="d-flex justify-content-around mt-4">
+                {/* <button
+                  className="btn custom text-white col-sm-2"
+                  onClick={handleTxn_NewAcc}
+                >
+                  Execute Txn
+                </button> */}
+                <button
+                  type="submit"
+                  className="btn custom text-white col-sm-2"
+                  onClick={handleTxn_NewAcc}
+                >
+                  Sign 1
+                </button>
+                <button
+                  type="submit"
+                  className="btn custom text-white col-sm-2"
+                  onClick={signTwo}
+                >
+                  Sign 2
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="card text-start w-75 my-5">
+            <div className="card-body">
+              <h5 className="card-title">Simple ERC20 mint.</h5>
+              <p className="card-text">
+                The above provided addresses are used as signatories.
+              </p>
+              <div className="d-flex justify-content-around mt-4">
+                {/* <button
+                  className="btn custom text-white col-sm-2"
+                  onClick={handleTxn_NewAcc}
+                >
+                  Execute Txn
+                </button> */}
+                <button
+                  type="submit"
+                  className="btn custom text-white col-sm-2"
+                  onClick={simpleSignOne}
+                >
+                  Sign 1
+                </button>
+                <button
+                  type="submit"
+                  className="btn custom text-white col-sm-2"
+                  onClick={simpleSignTwo}
+                >
+                  Sign 2
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
